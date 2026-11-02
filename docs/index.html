@@ -1,35 +1,61 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strategy leaderboard</title>
+<title>Strategy dashboard</title>
 <style>
-:root{--bg:#f6f7f5;--fg:#1d2420;--mut:#66706a;--line:#dde1dc;--up:#17794a;--dn:#b3382c;--hi:#e9efe9}
-@media(prefers-color-scheme:dark){:root{--bg:#141815;--fg:#e8ece9;--mut:#8f9a93;--line:#2a312c;--up:#4cc58a;--dn:#ef7b6e;--hi:#1e2620}}
-*{box-sizing:border-box}body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:15px/1.5 Georgia,serif}
-h1{font-size:22px;margin:0 0 4px}p.s{color:var(--mut);margin:0 0 16px;font-size:13px}
-.w{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:520px}
-th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
-th:nth-child(-n+2),td:nth-child(-n+2){text-align:left}th{font-weight:600;color:var(--mut);font-size:13px}
-tr.b td{background:var(--hi);font-style:italic}.up{color:var(--up)}.dn{color:var(--dn)}
-canvas{width:100%;height:240px;margin:20px 0 8px;display:block}.lg{font-size:13px;display:flex;flex-wrap:wrap;gap:4px 14px}
-.lg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
-.bad{margin-top:16px;color:var(--dn);font-size:13px}
+:root{--bg:#0f172a;--card:#1e293b;--line:#334155;--fg:#e2e8f0;--mut:#94a3b8;--up:#34d399;--dn:#f87171;--ac:#38bdf8}
+*{box-sizing:border-box}body{margin:0;padding:14px;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+h1{font-size:19px;margin:0}.sub{color:var(--mut);font-size:12px;margin:2px 0 12px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin-bottom:12px}
+label{display:flex;flex-direction:column;font-size:11px;color:var(--mut);gap:3px}
+input,select,button,a.btn{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font:inherit;min-width:0}
+input{width:112px}input.n{width:84px}button,a.btn{cursor:pointer;text-decoration:none;color:var(--ac)}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}@media(min-width:760px){.cards{grid-template-columns:repeat(5,1fr)}}
+.k{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px}.k small{color:var(--mut);font-size:11px;display:block}.k b{font-size:18px;font-weight:600}
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:10px}
+.tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--mut);white-space:nowrap;padding:9px 12px}
+.tabs button.on{color:var(--fg);border-color:var(--ac)}
+.w{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{color:var(--mut);font-weight:500;font-size:12px;position:sticky;top:0;background:var(--bg)}th:first-child,td:first-child{text-align:left}
+tr.b td{color:var(--mut);font-style:italic}tr.cl{cursor:pointer}tr.sel td{background:#1e293b}.up{color:var(--up)}.dn{color:var(--dn)}
+canvas{width:100%;height:230px;display:block;margin:14px 0 6px}.lg{font-size:12px;display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--mut)}
+.lg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}.note{color:var(--mut);font-size:12px;margin-top:10px}.bad{color:var(--dn);font-size:12px;margin-top:10px}
 </style></head><body>
-<h1>Strategy leaderboard</h1><p class="s" id="s">Loading…</p>
-<div class="w"><table id="t"></table></div>
-<canvas id="c" width="900" height="480"></canvas><div class="lg" id="lg"></div><div class="bad" id="bad"></div>
+<h1>Strategy dashboard</h1><div class="sub" id="up">Loading…</div>
+<div class="bar" id="par"></div>
+<div class="bar"><label>Strategy<select id="sel"></select></label></div>
+<div class="cards" id="cards"></div>
+<div class="tabs" id="tabs"></div>
+<div id="view"></div><div class="bad" id="bad"></div>
 <script>
-const f=n=>(n*100).toFixed(1)+"%",cl=n=>n>=0?"up":"dn",rs=n=>"₹"+Math.round(n).toLocaleString("en-IN");
-const cols=["#2f7fd1","#d9822b","#8a5cc2","#17a077","#c2467a","#8c8f2a","#5a6b7a","#c4503a"];
-fetch("results.json?"+Date.now()).then(r=>r.json()).then(d=>{
- s.textContent=`Updated ${d.updated} · every strategy starts ${d.start} with ${rs(d.capital)} · ${(d.cost*100).toFixed(1)}% cost per trade · taxes not included`;
- t.innerHTML="<tr><th>#</th><th>Strategy</th><th>XIRR</th><th>Total</th><th>Worst drop</th><th>Value now</th></tr>"+
-  d.rows.map((x,i)=>`<tr class="${x.kind=="benchmark"?"b":""}"><td>${i+1}</td><td>${x.name}</td><td class="${cl(x.xirr)}">${f(x.xirr)}</td><td class="${cl(x.total)}">${f(x.total)}</td><td class="dn">${f(x.maxdd)}</td><td>${rs(x.final)}</td></tr>`).join("");
- const k=c.getContext("2d"),W=c.width,H=c.height,all=d.rows.flatMap(x=>x.curve.map(p=>p[1])),lo=Math.min(...all),hi=Math.max(...all),n=Math.max(...d.rows.map(x=>x.curve.length));
- const dark=matchMedia("(prefers-color-scheme:dark)").matches;k.strokeStyle=dark?"#2a312c":"#dde1dc";k.strokeRect(0,0,W,H);
- d.rows.forEach((x,j)=>{k.beginPath();k.strokeStyle=cols[j%cols.length];k.lineWidth=x.kind=="benchmark"?2:3;if(x.kind=="benchmark")k.setLineDash([8,6]);else k.setLineDash([]);
-  x.curve.forEach((p,i)=>{const X=i/(n-1)*W,Y=H-(p[1]-lo)/(hi-lo||1)*(H-20)-10;i?k.lineTo(X,Y):k.moveTo(X,Y)});k.stroke();
-  lg.innerHTML+=`<span><i style="background:${cols[j%cols.length]}"></i>${x.name}</span>`});
- if(d.broken.length)bad.innerHTML="Could not run: "+d.broken.map(b=>b.file+" ("+b.problem+")").join("; ");
-}).catch(()=>s.textContent="No results yet. Run the daily update once from the Actions tab.");
+const $=id=>document.getElementById(id),pc=n=>(n*100).toFixed(1)+"%",rs=n=>(n<0?"-":"")+"₹"+Math.abs(Math.round(n)).toLocaleString("en-IN"),cl=n=>n>=0?"up":"dn";
+const TABS=["Strategy Leaderboard","Trade Journal","Stock-by-Stock Breakdown","Monthly Summary","Dividend Events"],COL=["#38bdf8","#fb923c","#a78bfa","#34d399","#f472b6","#facc15","#94a3b8","#f87171"];
+let D,cur=0,tab=0;
+const tbl=(cols,rows)=>`<div class="w"><table><tr>${cols.map(c=>`<th>${c[0]}</th>`).join("")}</tr>${rows.map(r=>`<tr ${r._a||""}>${cols.map(c=>{const v=c[1](r);return `<td class="${c[2]?c[2](r):""}">${v}</td>`}).join("")}</tr>`).join("")||`<tr><td colspan="${cols.length}">Nothing here yet.</td></tr>`}</table></div>`;
+function cards(){const m=D.strategies[cur].m;
+ const a=[["Total Portfolio Return",pc(m.total),cl(m.total)],["Total Realized Profit",rs(m.total_realized),cl(m.total_realized)],["Trade Realized Profit",rs(m.trade_realized),cl(m.trade_realized)],["Idle Interest",rs(m.interest),"up"],["Dividend Income",rs(m.dividends),"up"],
+ ["Unrealized Open P&L",rs(m.unrealized),cl(m.unrealized)],["XIRR %",pc(m.xirr),cl(m.xirr)],["Max Drawdown %",pc(m.maxdd),"dn"],["Trades Count",m.trades+" ("+m.open+" open)",""],["Compounded Capital Base",rs(m.base),""]];
+ $("cards").innerHTML=a.map(x=>`<div class="k"><small>${x[0]}</small><b class="${x[2]}">${x[1]}</b></div>`).join("")}
+function chart(rows){const k=$("c").getContext("2d"),W=900,H=460,all=rows.flatMap(x=>x.curve.map(p=>p[1])),lo=Math.min(...all),hi=Math.max(...all),n=Math.max(...rows.map(x=>x.curve.length));
+ k.clearRect(0,0,W,H);rows.forEach((x,j)=>{k.beginPath();k.strokeStyle=COL[j%8];k.lineWidth=x.isb?2:3;k.setLineDash(x.isb?[8,6]:[]);
+ x.curve.forEach((p,i)=>{const X=i/(n-1)*W,Y=H-(p[1]-lo)/(hi-lo||1)*(H-20)-10;i?k.lineTo(X,Y):k.moveTo(X,Y)});k.stroke()});
+ $("lg").innerHTML=rows.map((x,j)=>`<span><i style="background:${COL[j%8]}"></i>${x.name}</span>`).join("")}
+function show(){const s=D.strategies[cur];let h="";
+ if(tab==0){const rows=D.strategies.map((x,i)=>({...x,i,_a:`class="cl ${i==cur?"sel":""}" onclick="pick(${i})"`}));if(D.benchmark)rows.push({...D.benchmark,isb:1,_a:'class="b"'});
+  h=tbl([["#",r=>r.isb?"–":rows.indexOf(r)+1],["Strategy",r=>r.name],["XIRR",r=>pc(r.m.xirr),r=>cl(r.m.xirr)],["Total",r=>pc(r.m.total),r=>cl(r.m.total)],["Worst drop",r=>pc(r.m.maxdd),()=>"dn"],["Value now",r=>rs(r.m.final)]],rows)+
+  `<canvas id="c" width="900" height="460"></canvas><div class="lg" id="lg"></div><div class="note">Tap a strategy to load its numbers, trades and months above.</div>`}
+ if(tab==1)h=tbl([["Stock",r=>r.stock],["Entry",r=>r.entry],["Exit",r=>r.exit||"–"],["Tranches",r=>r.tranches],["Avg buy",r=>r.avg],["Exit / last",r=>r.price],["P&L",r=>rs(r.pnl),r=>cl(r.pnl)],["%",r=>pc(r.pct),r=>cl(r.pct)],["Days",r=>r.days],["Status",r=>r.status]],s.trades);
+ if(tab==2)h=tbl([["Stock",r=>r.stock],["Trades",r=>r.trades],["Win rate",r=>r.closed?pc(r.wins/r.closed):"–"],["Realized",r=>rs(r.realized),r=>cl(r.realized)],["Open P&L",r=>rs(r.unrealized),r=>cl(r.unrealized)],["Dividends",r=>rs(r.dividends)],["Avg days",r=>r.avg_days]],s.stocks);
+ if(tab==3)h=tbl([["Month",r=>r.month],["Return",r=>pc(r.ret),r=>cl(r.ret)],["Trades closed",r=>r.closed],["Trade P&L",r=>rs(r.trade_pnl),r=>cl(r.trade_pnl)],["Interest",r=>rs(r.interest)],["Dividends",r=>rs(r.dividends)],["Month-end value",r=>rs(r.equity)]],[...s.monthly].reverse());
+ if(tab==4)h=tbl([["Date",r=>r.date],["Stock",r=>r.stock],["Per share",r=>r.per_share],["Shares held",r=>r.shares],["Amount",r=>rs(r.amount),()=>"up"]],s.dividends);
+ $("view").innerHTML=h;if(tab==0)chart([...D.strategies,...(D.benchmark?[{...D.benchmark,isb:1}]:[])]);
+ $("tabs").innerHTML=TABS.map((t,i)=>`<button class="${i==tab?"on":""}" onclick="tab=${i};show()">${t}</button>`).join("");cards()}
+function pick(i){cur=i;$("sel").value=i;show()}
+fetch("results.json?"+Date.now()).then(r=>r.json()).then(d=>{D=d;const p=d.params,h=location.hostname.split(".")[0],rp=location.pathname.split("/")[1];
+ $("up").textContent=`Updated ${d.updated} · ${(p.cost*100).toFixed(1)}% cost per trade · ${(p.idle*100).toFixed(1)}% interest on idle cash · taxes not included`;
+ $("par").innerHTML=[["Start","start","date"],["End","end","date"],["Capital (₹)","capital","n"],["Max stocks","max_stocks","n"],["Tranches / stock","tranches","n"]].map(x=>`<label>${x[0]}<input class="${x[2]=="n"?"n":""}" ${x[2]=="date"?'type="date"':""} value="${p[x[1]]}" readonly></label>`).join("")+
+  `<a class="btn" target="_blank" href="https://github.com/${h}/${rp}/actions/workflows/daily.yml">Change &amp; re-run</a>`;
+ $("sel").innerHTML=d.strategies.map((s,i)=>`<option value="${i}">${s.name}</option>`).join("");$("sel").onchange=e=>pick(+e.target.value);
+ if(d.broken.length)$("bad").textContent="Could not run: "+d.broken.map(b=>b.file+" ("+b.problem+")").join("; ");
+ d.strategies.length?show():$("view").textContent="No strategies ran. Check the strategies folder."}).catch(()=>$("up").textContent="No results yet. Run the daily update once from the Actions tab.");
 </script></body></html>
