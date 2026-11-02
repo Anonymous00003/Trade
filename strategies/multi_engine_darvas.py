@@ -40,3 +40,4 @@ def dip_entry(prices):
     below = (w < w.rolling(N).min().shift(1)).astype(float)
     recent = below.rolling(LOOKBACK, min_periods=1).max().gt(0)
     return _daily_event(recent.shift(1, fill_value=False) & (w > w.shift(1)), prices.index)
+    
