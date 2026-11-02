@@ -25,4 +25,4 @@ def dip_ok(prices):
     # Averaging only on the day price breaks back above the 28 SMA.
     sma = _sma(prices)
     return (prices > sma) & ~(prices.shift(1) > sma.shift(1))
-    
+  
