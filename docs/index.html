@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strategy leaderboard</title>
+<style>
+:root{--bg:#f6f7f5;--fg:#1d2420;--mut:#66706a;--line:#dde1dc;--up:#17794a;--dn:#b3382c;--hi:#e9efe9}
+@media(prefers-color-scheme:dark){:root{--bg:#141815;--fg:#e8ece9;--mut:#8f9a93;--line:#2a312c;--up:#4cc58a;--dn:#ef7b6e;--hi:#1e2620}}
+*{box-sizing:border-box}body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:15px/1.5 Georgia,serif}
+h1{font-size:22px;margin:0 0 4px}p.s{color:var(--mut);margin:0 0 16px;font-size:13px}
+.w{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:520px}
+th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:nth-child(-n+2),td:nth-child(-n+2){text-align:left}th{font-weight:600;color:var(--mut);font-size:13px}
+tr.b td{background:var(--hi);font-style:italic}.up{color:var(--up)}.dn{color:var(--dn)}
+canvas{width:100%;height:240px;margin:20px 0 8px;display:block}.lg{font-size:13px;display:flex;flex-wrap:wrap;gap:4px 14px}
+.lg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+.bad{margin-top:16px;color:var(--dn);font-size:13px}
+</style></head><body>
+<h1>Strategy leaderboard</h1><p class="s" id="s">Loading…</p>
+<div class="w"><table id="t"></table></div>
+<canvas id="c" width="900" height="480"></canvas><div class="lg" id="lg"></div><div class="bad" id="bad"></div>
+<script>
+const f=n=>(n*100).toFixed(1)+"%",cl=n=>n>=0?"up":"dn",rs=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+const cols=["#2f7fd1","#d9822b","#8a5cc2","#17a077","#c2467a","#8c8f2a","#5a6b7a","#c4503a"];
+fetch("results.json?"+Date.now()).then(r=>r.json()).then(d=>{
+ s.textContent=`Updated ${d.updated} · every strategy starts ${d.start} with ${rs(d.capital)} · ${(d.cost*100).toFixed(1)}% cost per trade · taxes not included`;
+ t.innerHTML="<tr><th>#</th><th>Strategy</th><th>XIRR</th><th>Total</th><th>Worst drop</th><th>Value now</th></tr>"+
+  d.rows.map((x,i)=>`<tr class="${x.kind=="benchmark"?"b":""}"><td>${i+1}</td><td>${x.name}</td><td class="${cl(x.xirr)}">${f(x.xirr)}</td><td class="${cl(x.total)}">${f(x.total)}</td><td class="dn">${f(x.maxdd)}</td><td>${rs(x.final)}</td></tr>`).join("");
+ const k=c.getContext("2d"),W=c.width,H=c.height,all=d.rows.flatMap(x=>x.curve.map(p=>p[1])),lo=Math.min(...all),hi=Math.max(...all),n=Math.max(...d.rows.map(x=>x.curve.length));
+ const dark=matchMedia("(prefers-color-scheme:dark)").matches;k.strokeStyle=dark?"#2a312c":"#dde1dc";k.strokeRect(0,0,W,H);
+ d.rows.forEach((x,j)=>{k.beginPath();k.strokeStyle=cols[j%cols.length];k.lineWidth=x.kind=="benchmark"?2:3;if(x.kind=="benchmark")k.setLineDash([8,6]);else k.setLineDash([]);
+  x.curve.forEach((p,i)=>{const X=i/(n-1)*W,Y=H-(p[1]-lo)/(hi-lo||1)*(H-20)-10;i?k.lineTo(X,Y):k.moveTo(X,Y)});k.stroke();
+  lg.innerHTML+=`<span><i style="background:${cols[j%cols.length]}"></i>${x.name}</span>`});
+ if(d.broken.length)bad.innerHTML="Could not run: "+d.broken.map(b=>b.file+" ("+b.problem+")").join("; ");
+}).catch(()=>s.textContent="No results yet. Run the daily update once from the Actions tab.");
+</script></body></html>
