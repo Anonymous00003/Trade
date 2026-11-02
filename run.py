@@ -169,8 +169,7 @@ def simulate(px, sg_all, dok_all, dent_all, div, cfg):
     extra = dict(trade_realized=round(tr), interest=round(interest), dividends=round(dsum), unrealized=round(unreal), total_realized=round(tr + interest + dsum),
                  closed=sum(t["status"] == "Closed" for t in trades), trades_total=len(trades), base=round(CAPITAL + tr + interest + dsum - withdrawn))
     trades.sort(key=lambda t: t["buy_date"], reverse=True)
-    bl = "sell on signal off, any profit" if BL is None else f"bullish min profit {BL*100:g}%"
-    if BA is not None: bl += f", bullish min {BA:g}% a year"
+    bl = f"bullish min profit {BL*100:g}%" if BL is not None else (f"bullish sold on signal off if at least {BA:g}% a year" if BA is not None else "bullish sold on signal off, any profit")
     dip = "bought on its own signal" if DTR == "signal" else f"step {ST*100:g}% ({'price today' if DB == 'current' else 'low since last buy'})"
     rs_ = "" if RS is None else f", {100-RS:g}% of capital for first buys / {RS:g}% for averaging"
     rules = (f'Own rules: {MX} stocks x {TRn} tranches ({BN} bullish + {DS} dip{rs_}), dip tranches {dip}, dip target {BR*100:g}%, {bl}, '
@@ -234,3 +233,4 @@ def main(data=None):
 
 if __name__ == "__main__":
     main()
+ 
