@@ -1,0 +1,39 @@
+name: Daily update
+on:
+  schedule:
+    - cron: "30 11 * * 1-5"   # 5:00 pm India time, after the market closes
+  workflow_dispatch:
+    inputs:
+      start: {description: "Start date (YYYY-MM-DD)", default: "2019-01-01"}
+      end: {description: "End date (blank = latest)", default: ""}
+      capital: {description: "Overall capital in rupees", default: "1500000"}
+      max_stocks: {description: "Max concurrent stocks", default: "10"}
+      tranches: {description: "Tranches per stock", default: "3"}
+      bear_target: {description: "Bearish target % (dip tranches sell at this profit)", default: "5"}
+      bull_min: {description: "Bullish exit min return %", default: "2"}
+permissions:
+  contents: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: python run.py
+        env:
+          START: ${{ inputs.start }}
+          END: ${{ inputs.end }}
+          CAPITAL: ${{ inputs.capital }}
+          MAX_STOCKS: ${{ inputs.max_stocks }}
+          TRANCHES: ${{ inputs.tranches }}
+          BEAR_TARGET: ${{ inputs.bear_target }}
+          BULL_MIN: ${{ inputs.bull_min }}
+      - run: |
+          git config user.name "daily-bot"
+          git config user.email "daily-bot@users.noreply.github.com"
+          git add docs/results.json
+          git commit -m "Update results" || exit 0
+          git push
